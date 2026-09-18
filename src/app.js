@@ -18,13 +18,40 @@ const app = express();
 app.set('trust proxy', 1);
 
 // --- Security ---
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
-  cors({
-    origin: (process.env.CLIENT_URL || 'http://localhost:5173').split(','),
-    credentials: true
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: 'cross-origin'
+    }
   })
 );
+
+// --- CORS ---
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://nisha-project-business-management.netlify.app',
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+// --- Rate limit ---
 app.use(
   '/api',
   rateLimit({
@@ -32,7 +59,10 @@ app.use(
     max: 300,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, message: 'Too many requests. Please slow down.' }
+    message: {
+      success: false,
+      message: 'Too many requests. Please slow down.'
+    }
   })
 );
 
@@ -40,15 +70,23 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(compression());
-if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
+
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
 
 // --- Static uploads ---
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // --- Routes ---
 app.get('/api/health', (req, res) =>
-  res.json({ success: true, service: 'Nisha Project & Business Management API', time: new Date().toISOString() })
+  res.json({
+    success: true,
+    service: 'Nisha Project & Business Management API',
+    time: new Date().toISOString()
+  })
 );
+
 app.use('/api/auth', authRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/content', contentRoutes);
