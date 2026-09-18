@@ -37,12 +37,16 @@ const allowedOrigins = [
   'http://127.0.0.1:5175',
   'http://127.0.0.1:5176',
   process.env.CLIENT_URL,
-  'https://nisha-project-business-management.netlify.app',
+  'https://nisha-project-business-management.netlify.app'
 ].filter(Boolean);
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const isAllowed = !origin || allowedOrigins.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  const isAllowed =
+    !origin ||
+    allowedOrigins.includes(origin) ||
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
+    /^https:\/\/.*\.netlify\.app$/i.test(origin);
 
   if (isAllowed) {
     res.header('Access-Control-Allow-Origin', origin || '*');
